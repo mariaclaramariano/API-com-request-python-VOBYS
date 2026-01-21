@@ -6,7 +6,6 @@ app = Flask(__name__)
 
 # ---BUSCAR E SALVAR
 def atualizar_banco():
-    # ALTERAÇÃO AQUI: Adicionamos &siglaUf=PI para a API enviar apenas o Piauí
     url = "https://dadosabertos.camara.leg.br/api/v2/deputados?ordem=ASC&ordenarPor=nome" 
     
     try:
@@ -113,3 +112,4 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
