@@ -4,31 +4,45 @@ import sqlite3
 
 app = Flask(__name__)
 
-# --- FUNÇÃO PARA BUSCAR E SALVAR (Seu Back-end) ---
+# ---BUSCAR E SALVAR
 def atualizar_banco():
-    url = "https://dadosabertos.camara.leg.br/api/v2/deputados?itens=20" 
-    response = requests.get(url)
-    dados = response.json()['dados']
+    # ALTERAÇÃO AQUI: Adicionamos &siglaUf=PI para a API enviar apenas o Piauí
+    url = "https://dadosabertos.camara.leg.br/api/v2/deputados?ordem=ASC&ordenarPor=nome" 
     
-    conexao = sqlite3.connect('camara_dados.db')
-    cursor = conexao.cursor()
-    cursor.execute('CREATE TABLE IF NOT EXISTS deputados (id INTEGER, nome TEXT, partido TEXT, uf TEXT)')
-    cursor.execute('DELETE FROM deputados')
-    
-    for d in dados:
-        cursor.execute('INSERT INTO deputados VALUES (?, ?, ?, ?)', (d['id'], d['nome'], d['siglaPartido'], d['siglaUf']))
-    
-    conexao.commit()
-    conexao.close()
+    try:
+        response = requests.get(url)
+        dados = response.json()['dados']
+        
+        conexao = sqlite3.connect('camara_dados.db')
+        cursor = conexao.cursor()
+        cursor.execute('CREATE TABLE IF NOT EXISTS deputados (id INTEGER, nome TEXT, partido TEXT, uf TEXT)')
+        
+        # Limpa o banco para não duplicar dados
+        cursor.execute('DELETE FROM deputados')
+        
+        for d in dados:
+            cursor.execute('INSERT INTO deputados VALUES (?, ?, ?, ?)', 
+                           (d['id'], d['nome'], d['siglaPartido'], d['siglaUf']))
+        
+        conexao.commit()
+        conexao.close()
+    except Exception as e:
+        print(f"Erro ao atualizar: {e}")
 
-# --- ROTA DA PÁGINA WEB (Seu Front-end) ---
+# --- ROTA DO SITE
 @app.route('/')
 def index():
-    atualizar_banco() # Atualiza os dados toda vez que abre o site
+    atualizar_banco()
+     # Atualiza os dados toda vez que abre o site
     
     conexao = sqlite3.connect('camara_dados.db')
     cursor = conexao.cursor()
-    cursor.execute('SELECT nome, partido, uf FROM deputados ORDER BY partido ASC')
+    cursor.execute('''
+                    SELECT nome, partido, uf FROM deputados WHERE 
+                    UPPER (UF) = "RJ" 
+                    AND nome LIKE "P%" 
+                    ORDER BY partido ASC
+                    ''')
     lista = cursor.fetchall()
     conexao.close()
 
